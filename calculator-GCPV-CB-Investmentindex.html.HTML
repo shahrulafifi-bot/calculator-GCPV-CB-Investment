@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional GCPV Estimator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-body: #0f172a;       /* Slate 900 */
+            --bg-card: #1e293b;       /* Slate 800 */
+            --bg-input: #334155;      /* Slate 700 */
+            --text-main: #f1f5f9;     /* Slate 100 */
+            --text-muted: #94a3b8;    /* Slate 400 */
+            --accent: #10b981;        /* Emerald 500 */
+            --accent-hover: #34d399;  /* Emerald 400 */
+            --border: #334155;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* LAYOUT GRID */
+        .app-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100vh;
+            overflow-y: auto;
+            position: sticky;
+            top: 0;
+        }
+
+        .sidebar h2 {
+            color: var(--accent);
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px; font-weight: 600; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 6px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        .form-group input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+        .form-group small { color: #64748b; font-size: 0.75rem; }
+
+        button.btn-primary {
+            background-color: var(--accent);
+            color: #064e3b;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 800;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+        button.btn-primary:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
+
+        /* MAIN CONTENT */
+        .main-content {
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        h1 { margin: 0; font-size: 1.8rem; font-weight: 800; }
+        .subtitle { color: var(--text-muted); margin-top: 5px; }
+
+        .btn-print {
+            background: transparent;
+            border: 1px solid var(--text-muted);
+            color: var(--text-muted);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn-print:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* CARDS */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .card h4 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; }
+        .card .value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+
+        /* CHART */
+        .chart-container {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 30px;
+            height: 400px;
+        }
+
+        /* TABLES */
+        .table-section { margin-bottom: 40px; }
+        .table-section h3 { border-left: 4px solid var(--accent); padding-left: 10px; margin-bottom: 15px; }
+        
+        .table-wrapper {
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 12px 15px; text-align: center; border-bottom: 1px solid var(--border); }
+        th { background: #111827; color: var(--accent); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
+        td:first-child { text-align: left; font-weight: 600; color: var(--text-main); background: rgba(255,255,255,0.03); }
+        tr:last-child td { border-bottom: none; }
+        
+        /* Highlight Specific Rows */
+        #row-totalCost td { color: var(--accent); font-weight: bold; background: rgba(16, 185, 129, 0.05); }
+
+        /* DISCLAIMER */
+        .disclaimer-box {
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: #64748b;
+            text-align: justify;
+            border: 1px solid var(--border);
+            margin-top: 50px;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px) {
+            .app-container { grid-template-columns: 1fr; }
+            .sidebar { height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--border); }
+        }
+
+        /* PRINT STYLES */
+        @media print {
+            .sidebar, .btn-print, footer { display: none !important; }
+            .app-container { display: block; }
+            .main-content { padding: 0; }
+            body, .card, .chart-container, .table-wrapper { 
+                background: white !important; 
+                color: black !important; 
+                border: none !important; 
+            }
+            .card, .chart-container, .table-wrapper { border: 1px solid #ddd !important; margin-bottom: 20px; page-break-inside: avoid; }
+            h1 { color: #000; font-size: 24pt; }
+            th { background: #eee !important; color: #000 !important; border-bottom: 2px solid #000; }
+            td { border-bottom: 1px solid #ccc; color: #000 !important; }
+            .value { color: #000 !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <aside class="sidebar">
+        <h2>System Parameters</h2>
+        
+        <div class="form-group">
+            <label>Monthly Real Energy (kWh)</label>
+            <input type="number" id="realEnergy" placeholder="e.g. 1300">
+            <small>Input purata bil bulanan.</small>
+        </div>
+
+        <div class="form-group">
+            <label>Monthly Reactive Energy (kVARh)</label>
+            <input type="number" id="reactiveEnergy" placeholder="e.g. 370">
+        </div>
+
+        <div class="form-group">
+            <label>Target Power Factor</label>
+            <input type="number" id="desiredPF" step="0.01" value="0.95">
+        </div>
+
+        <div class="form-group">
+            <label>PV Module Rating (Wp)</label>
+            <input type="number" id="pvRating" value="660">
+        </div>
+
+        <hr style="border-color: var(--border); width:100%;">
+
+        <h2>Financials</h2>
+        <div class="form-group">
+            <label>Tariff Rate (RM/kWh)</label>
+            <select id="tariffRate">
+                <option value="0.5068" selected>Commercial Low-Voltage (0.5068)</option>
+                <option value="0.2983">Commercial Medium-Voltage (0.2983)</option>
+                <option value="0.4303">Commercial High-Voltage (0.4303)</option>
+                <option value="0.4443">Residential (0.4443)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Estimate System Price (RM/kWp)</label>
+            <input type="number" id="estPricePerKW" value="4000">
+            <small>Use for Table 4 (Total Cost).</small>
+        </div>
+
+        <button class="btn-primary" onclick="calculateAll()">Generate Report</button>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div>
+                <h1>GCPV Analysis Toolkit</h1>
+                <div class="subtitle">Solar Sizing & Power Factor Correction Report</div>
+            </div>
+            <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
+        </header>
+
+        <div class="summary-cards">
+            <div class="card">
+                <h4>Current PF</h4>
+                <div class="value" id="card-pf">-</div>
+            </div>
+            <div class="card">
+                <h4>Max Demand (Est)</h4>
+                <div class="value" id="card-md">- <small style="font-size:0.5em">kW</small></div>
+            </div>
+            <div class="card">
+                <h4>Best ROI (at 100%)</h4>
+                <div class="value" id="card-roi">- <small style="font-size:0.5em">%</small></div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="analysisChart"></canvas>
+        </div>
+
+        <div id="results-area">
+            
+            <div class="table-section">
+                <h3>1. Power Factor Analysis</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <tbody>
+                            <tr><td width="50%">Power Factor Before</td><td id="pfBefore">-</td></tr>
+                            <tr><td>Angle (θ) Before</td><td id="angleBefore">-</td></tr>
+                            <tr><td>Target Power Factor</td><td id="pfAfter">-</td></tr>
+                            <tr><td>Target Angle (θ)</td><td id="angleAfter">-</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <h3>2. PV Sizing & Equipment</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>GCPV TO BE APPLY (%)</th><th>20%</th><th>40%</th><th>60%</th><th>80%</th><th>100%</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr id="row-parray"></tr>
+                            <tr id="row-qty"></tr>
+                            <tr id="row-modPrice"></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <h3>3. Capacitor Bank Sizing</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>GCPV TO BE APPLY (%)</th><th>0%</th><th>20%</th><th>40%</th><th>60%</th><th>80%</th><th>100%</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr id="row-reactiveNew"></tr> 
+                            <tr id="row-reactiveReq"></tr>
+                            <tr id="row-capReq"></tr>
+                            <tr id="row-apfc"></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <h3>4. Costing (Includes Hardware + Mobilization)</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>GCPV TO BE APPLY (%)</th><th>20%</th><th>40%</th><th>60%</th><th>80%</th><th>100%</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr id="row-totalCost"></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <h3>5. Financial Returns</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>GCPV TO BE APPLY (%)</th><th>20%</th><th>40%</th><th>60%</th><th>80%</th><th>100%</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr id="row-irr"></tr>
+                            <tr id="row-payback"></tr>
+                            <tr id="row-roi"></tr>
+                            <tr id="row-co2"></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="disclaimer-box">
+            <strong>Disclaimer:</strong> The calculations and data provided on this website are for estimation and reference purposes only. For detailed technical proposals and accurate sizing, kindly consult a certified PV service provider.
+            <br><br>
+            While we strive to ensure the accuracy of the data, no warranty is given regarding its completeness or timeliness. Users should independently verify the information before acting on it. This website shall not be held liable for any damages or losses resulting from the use of this tool/data.
+        </div>
+    </main>
+</div>
+
+<script>
+    // --- CHART GLOBAL VAR ---
+    let myChart = null;
+
+    // --- HELPER: CAPACITOR BANK COST LOGIC (SMART PRICING) ---
+    // Mengelakkan graf jatuh mendadak bila ada APFC kecil
+    function getCapBankCost(kvarNeeded) {
+        if (kvarNeeded <= 0) return 0;
+        const pricePerKVAR = 250; // RM250 per kVAR
+        const minCost = 1500;     // Kos minimum
+        let calculatedCost = kvarNeeded * pricePerKVAR;
+        return Math.max(minCost, calculatedCost);
+    }
+
+    function toDegrees(radians) { return radians * (180 / Math.PI); }
+
+    // --- HELPER: IRR CALCULATION ---
+    function calculateIRR(initialInvestment, annualFlow, years) {
+        if (initialInvestment <= 0) return 0;
+        let guess = 0.1;
+        for (let i = 0; i < 100; i++) {
+            let npv = 0, d_npv = 0;
+            // NPV Formula: -Initial + Sum(Flow / (1+r)^t)
+            npv = -initialInvestment; 
+            for (let t = 1; t <= years; t++) {
+                npv += annualFlow / Math.pow(1 + guess, t);
+                d_npv -= (t * annualFlow) / Math.pow(1 + guess, t + 1);
+            }
+            if(Math.abs(npv) < 1) return guess * 100;
+            if(d_npv == 0) return 0; 
+            let newGuess = guess - (npv / d_npv);
+            if (Math.abs(newGuess - guess) < 0.00001) return newGuess * 100;
+            guess = newGuess;
+        }
+        return guess * 100;
+    }
+
+    function calculateAll() {
+        // GET VALUES
+        let monthlyRealEnergy = parseFloat(document.getElementById('realEnergy').value) || 0;
+        let monthlyReactive = parseFloat(document.getElementById('reactiveEnergy').value) || 0;
+        let desiredPF = parseFloat(document.getElementById('desiredPF').value) || 0.95;
+        let pvRating = parseFloat(document.getElementById('pvRating').value) || 660;
+        let tariffRate = parseFloat(document.getElementById('tariffRate').value) || 0.5068;
+        
+        // INPUT USER: HARGA HARDWARE (User tak nampak kos mobilisasi)
+        let estPricePerKW = parseFloat(document.getElementById('estPricePerKW').value) || 3000;
+
+        const fixedModulePrice = 4000; // Digunakan untuk Table 2 sahaja
+        
+        // --- HIDDEN LOGIC: MOBILIZATION/LOGISTIC COST ---
+        // Ini akan menjadikan sistem kecil lebih mahal per unit (ROI Rendah)
+        // Dan sistem besar lebih murah per unit (ROI Tinggi/Economies of Scale)
+        const hiddenMobilizationCost = 3500; 
+
+        let isValid = monthlyRealEnergy > 0;
+        let annualRealEnergy = monthlyRealEnergy * 12;
+        const specificYield = 1642.5 * 0.99 * 0.835;
+
+        // 1. PF Analysis
+        let pfBefore = 0;
+        if(isValid) {
+            pfBefore = monthlyRealEnergy / Math.sqrt(Math.pow(monthlyRealEnergy,2) + Math.pow(monthlyReactive,2));
+            document.getElementById('pfBefore').innerText = pfBefore.toFixed(3);
+            document.getElementById('angleBefore').innerText = toDegrees(Math.acos(pfBefore)).toFixed(2) + "°";
+            document.getElementById('pfAfter').innerText = desiredPF.toFixed(2);
+            document.getElementById('angleAfter').innerText = toDegrees(Math.acos(desiredPF)).toFixed(2) + "°";
+            
+            // Update Card
+            document.getElementById('card-pf').innerText = pfBefore.toFixed(2);
+            document.getElementById('card-md').innerHTML = (monthlyRealEnergy/(30*24)).toFixed(1) + " <small>kW</small>";
+        }
+
+        // Prepare HTML Strings & Arrays for Chart
+        let h_parray = '<td>System Size (kWp)</td>';
+        let h_qty = '<td>Module Quantity</td>';
+        let h_modPrice = '<td>Module Prices Total (RM)</td>';
+        let h_cost = '<td>Total System Cost (RM)</td>';
+        let h_irr = '<td>Internal Rate of Return,IRR (%)</td>';
+        let h_payback = '<td>Payback Period,PP (Years)</td>';
+        let h_roi = '<td>Return Of Investment,ROI (%)</td>';
+        let h_co2 = '<td>CO2 Saved (tCO2)</td>';
+
+        let h_rNew = '<td>Reactive Energy New (kVARh)</td>'; 
+        let h_rReq = '<td>Reactive Power Req (kVARh)</td>';
+        let h_cap = '<td>Capacitance (µF)</td>';
+        let h_apfc = '<td>Need APFC?</td>';
+
+        // Arrays for Chart
+        let chartDataROI = [];
+        let chartDataCost = [];
+
+        const percentages = [20, 40, 60, 80, 100];
+        const moduleRatingKW = pvRating / 1000;
+
+        // MAIN LOOP (20% - 100%)
+        percentages.forEach(pct => {
+            if(!isValid) {
+                [h_parray, h_qty, h_modPrice, h_cost, h_irr, h_payback, h_roi, h_co2].forEach(s => s += '<td>-</td>');
+                return;
+            }
+
+            // Calculation
+            let targetAnnualGen = annualRealEnergy * (pct/100);
+            let pArray = targetAnnualGen / specificYield;
+            let qty = Math.ceil(pArray / moduleRatingKW);
+            let actualSystemSizekWp = qty * moduleRatingKW;
+            let actualAnnualGenKWh = actualSystemSizekWp * specificYield;
+
+            // TABLE 2: Module Price Only (Rough est)
+            let modPriceVal = actualSystemSizekWp * fixedModulePrice;
+
+            // --- A. LOGIK APFC (SMART PRICING) ---
+            let angleDesiredRad = Math.acos(desiredPF);
+            let gridRealEnergyMonthly = monthlyRealEnergy * (1 - (pct/100));
+            let reactiveNewMonthly = gridRealEnergyMonthly * Math.tan(angleDesiredRad);
+            let diffMonthly = monthlyReactive - reactiveNewMonthly;
+            
+            let needAPFC = (diffMonthly > 0);
+            let currentAPFCCost = 0;
+            if (needAPFC) {
+                // Estimate kVAR size based on Energy Deficit (Assuming ~240h working hours)
+                let estimatedKVARSize = diffMonthly / 240; 
+                currentAPFCCost = getCapBankCost(estimatedKVARSize);
+            }
+
+            // --- B. LOGIK HARGA SOLAR (HIDDEN MOBILIZATION) ---
+            // Total Solar Cost = (Size * User Price) + Hidden Logistic Cost
+            let solarHardwareCost = actualSystemSizekWp * estPricePerKW;
+            let systemTotalCost = solarHardwareCost + hiddenMobilizationCost;
+            
+            // Grand Total (Solar + APFC)
+            let grandTotal = systemTotalCost + currentAPFCCost;
+
+            // Financials
+            let annualSavingRM = actualAnnualGenKWh * tariffRate;
+            let lifespan = 21;
+            let totalSavingLife = annualSavingRM * lifespan;
+            let netProfit = totalSavingLife - grandTotal;
+            
+            // ROI
+            let roi = (grandTotal > 0) ? (netProfit / grandTotal) * 100 : 0;
+            
+            // Payback
+            let payback = (annualSavingRM > 0) ? (grandTotal / annualSavingRM) : 0;
+            
+            // IRR
+            let irr = calculateIRR(grandTotal, annualSavingRM, lifespan);
+            
+            // CO2
+            let co2 = (actualAnnualGenKWh * 0.639) / 1000;
+
+            // Push to Chart Data
+            chartDataROI.push(roi.toFixed(1));
+            chartDataCost.push((grandTotal/1000).toFixed(1)); 
+
+            // HTML Append
+            h_parray += `<td>${actualSystemSizekWp.toFixed(1)}</td>`;
+            h_qty += `<td>${qty}</td>`;
+            h_modPrice += `<td>${modPriceVal.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`;
+            h_cost += `<td>${grandTotal.toLocaleString(undefined,{maximumFractionDigits:0})}</td>`;
+            h_irr += `<td>${irr.toFixed(1)}</td>`;
+            h_payback += `<td>${payback.toFixed(1)}</td>`;
+            h_roi += `<td>${roi.toFixed(0)}</td>`;
+            h_co2 += `<td>${co2.toFixed(1)}</td>`;
+
+            if(pct === 100) {
+                document.getElementById('card-roi').innerHTML = roi.toFixed(0) + " <small>%</small>";
+            }
+        });
+
+        // CAPACITOR LOOP (0% - 100%)
+        let allPcts = [0, 20, 40, 60, 80, 100];
+        allPcts.forEach(pct => {
+            if(!isValid) {
+                h_rNew += '<td>-</td>'; h_rReq += '<td>-</td>'; h_cap += '<td>-</td>'; h_apfc += '<td>-</td>';
+                return;
+            }
+            
+            let angleDesiredRad = Math.acos(desiredPF);
+            let gridRealEnergy = monthlyRealEnergy * (1 - (pct/100));
+            let reactiveNew = gridRealEnergy * Math.tan(angleDesiredRad);
+            let diff = monthlyReactive - reactiveNew;
+
+            let dispDiff = "-", dispCap = "-", dispAPFC = "No";
+            if(diff > 0) {
+                dispDiff = diff.toFixed(1);
+                dispCap = ((diff/(30*24))*1000).toFixed(0);
+                dispAPFC = "<span style='color:#10b981; font-weight:bold'>YES</span>";
+            }
+            
+            h_rNew += `<td>${reactiveNew.toFixed(0)}</td>`; 
+            h_rReq += `<td>${dispDiff}</td>`;
+            h_cap += `<td>${dispCap}</td>`;
+            h_apfc += `<td>${dispAPFC}</td>`;
+        });
+
+        document.getElementById('row-parray').innerHTML = h_parray;
+        document.getElementById('row-qty').innerHTML = h_qty;
+        document.getElementById('row-modPrice').innerHTML = h_modPrice; 
+        document.getElementById('row-totalCost').innerHTML = h_cost;    
+        document.getElementById('row-irr').innerHTML = h_irr;
+        document.getElementById('row-payback').innerHTML = h_payback;
+        document.getElementById('row-roi').innerHTML = h_roi;
+        document.getElementById('row-co2').innerHTML = h_co2;
+        document.getElementById('row-reactiveNew').innerHTML = h_rNew; 
+        document.getElementById('row-reactiveReq').innerHTML = h_rReq;
+        document.getElementById('row-capReq').innerHTML = h_cap;
+        document.getElementById('row-apfc').innerHTML = h_apfc;
+
+        renderChart(chartDataROI, chartDataCost);
+    }
+
+    function renderChart(roiData, costData) {
+        const ctx = document.getElementById('analysisChart').getContext('2d');
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['20%', '40%', '60%', '80%', '100%'],
+                datasets: [
+                    {
+                        label: 'ROI (%)',
+                        data: roiData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                        type: 'line',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'System Cost (kRM)',
+                        data: costData,
+                        backgroundColor: '#3b82f6',
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    title: { display: true, text: 'Financial Projection: ROI vs Cost', color: '#94a3b8' },
+                    legend: { labels: { color: '#cbd5e1' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+                    y: {
+                        type: 'linear', display: true, position: 'left',
+                        title: { display: true, text: 'ROI %', color: '#10b981' },
+                        ticks: { color: '#94a3b8' }, grid: { color: '#334155' }
+                    },
+                    y1: {
+                        type: 'linear', display: true, position: 'right',
+                        title: { display: true, text: 'Cost (RM x1000)', color: '#3b82f6' },
+                        grid: { drawOnChartArea: false }, ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+    }
+
+    window.onload = calculateAll;
+</script>
+
+</body>
+</html>
